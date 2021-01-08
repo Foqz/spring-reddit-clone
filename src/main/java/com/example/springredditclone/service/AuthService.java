@@ -58,11 +58,13 @@ public class AuthService {
         verificationTokenOptional.orElseThrow(() -> new SpringRedditException("Invalid Token"));
         
         fetchUserAndEnable(verificationTokenOptional.get());
-        
     }
 
-    private void fetchUserAndEnable(VerificationToken verificationToken) {
+    @Transactional
+    public void fetchUserAndEnable(VerificationToken verificationToken) {
         String userName = verificationToken.getUser().getUsername();
-        userRepository.findByUsername(userName);
+        User user = userRepository.findByUsername(userName).orElseThrow(() -> new SpringRedditException("User not found with name: " + userName));
+        user.setEnabled(true);
+        userRepository.save(user);
     }
 }
