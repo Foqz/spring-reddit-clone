@@ -1,6 +1,7 @@
 package com.example.springredditclone.security;
 
 import com.example.springredditclone.exceptions.SpringRedditException;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
@@ -12,13 +13,15 @@ import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
 
+import static io.jsonwebtoken.Jwts.parser;
+
 @Service
 public class JwtProvider {
 
     private KeyStore keyStore;
 
     @PostConstruct
-    public void init(){
+    public void init() {
         try {
             keyStore = KeyStore.getInstance("JKS");
             InputStream resourceAsStream = getClass().getResourceAsStream("/springblog.jks");
@@ -43,5 +46,26 @@ public class JwtProvider {
         } catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
             throw new SpringRedditException("Exception occurred while retrieving public key from keystore");
         }
+    }
+
+    public boolean validateToken(String jwt) {
+        parser().setSigningKey(getPublicKey()).parseClaimsJws(jwt);
+        return true;
+    }
+
+    private PublicKey getPublicKey() {
+        try {
+            return keyStore.getCertificate("springblog").getPublicKey();
+        } catch (KeyStoreException e) {
+           throw new SpringRedditException("Exception occurred while retrieving public key from keystore");
+        }
+    }
+
+    public String getUsernameFromJwt(String token) {
+        Claims claims = parser()
+                .setSigningKey(getPublicKey())
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
     }
 }
